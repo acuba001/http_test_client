@@ -364,7 +364,6 @@ class HttpTestResponse extends Stream<List<int>> implements HttpClientResponse {
   }
 
   @override
-  // TODO: implement compressionState
   HttpClientResponseCompressionState get compressionState => throw UnimplementedError();
 }
 
