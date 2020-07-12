@@ -1,12 +1,3 @@
-# http_test_client
-A package for testing http clients on flutter or the Dart vm.
-
-
-## Example
-The following example forces all HTTP requests to return a
-successful empty response in a test enviornment.  No actual HTTP requests will be performed.
-
-```dart
 import 'dart:io';
 import 'dart:math';
 import 'package:test/test.dart';
@@ -42,4 +33,3 @@ void main() {
     });
   });
 }
-```

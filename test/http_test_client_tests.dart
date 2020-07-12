@@ -34,7 +34,7 @@ void main() {
     test('can be provided using HttpOverrides', () {
       final HttpClient client = new HttpClient();
 
-      expect(client, const isInstanceOf<HttpTestClient>());
+      expect(client, isA<HttpTestClient>());
     });
 
     test('returns a body of "Hello World" and headers', () async {
@@ -74,7 +74,7 @@ void main() {
         headers..add('foo', 'bar')..add('foo', 'class');
 
         expect(() => headers.value('foo'),
-            throwsA(const isInstanceOf<StateError>()));
+            throwsA(isA<StateError>()));
       });
     });
   });

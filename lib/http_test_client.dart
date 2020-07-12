@@ -249,6 +249,9 @@ class HttpTestClient implements HttpClient {
     );
     return new Future.value(response);
   }
+
+  @override
+  Duration connectionTimeout;
 }
 
 /// A fake [HttpClientResponse] to return in a [RequestCallback].
@@ -276,13 +279,13 @@ class HttpTestResponse extends Stream<List<int>> implements HttpClientResponse {
   /// or a `List<int>` - including `Uint8List` and other typed data objects.
   /// It defaults to the empty string, and will never be `null`;
   ///
-  /// The [statusCode] defaults to [HttpStatus.OK].
+  /// The [statusCode] defaults to [HttpStatus.ok].
   ///
   /// [headers] are empty by default.  Multiple header values can be passed
   /// in a comma-separated string.
   factory HttpTestResponse({
     dynamic body,
-    int statusCode = HttpStatus.OK,
+    int statusCode = HttpStatus.ok,
     Map<String, String> headers = const <String, String>{},
   }) {
     body ??= '';
@@ -359,6 +362,10 @@ class HttpTestResponse extends Stream<List<int>> implements HttpClientResponse {
       [String method, Uri url, bool followLoops]) {
     throw new UnsupportedError('');
   }
+
+  @override
+  // TODO: implement compressionState
+  HttpClientResponseCompressionState get compressionState => throw UnimplementedError();
 }
 
 /// A fake implementation of [HttpClientRequest].
@@ -500,28 +507,44 @@ class HttpTestHeaders extends HttpHeaders {
   factory HttpTestHeaders._(Map<String, String> headers) {
     final Map<String, List<String>> values = <String, List<String>>{};
     headers.forEach((String key, String value) {
-      values[key] = value.split(',').map((value) => value.trim());
+      values[key] = value.split(',').map((value) => value.trim()).toList();
     });
     return new HttpTestHeaders.__(values);
   }
 
-  HttpTestHeaders.__(this._headers);
+  HttpTestHeaders.__(this._headers):_lowerToKey = <String,String>{}{
+    _headers.forEach((key, value) => _lowerToKey[key.toLowerCase()] = key);
+  }
 
   final Map<String, List<String>> _headers;
+  final Map<String, String> _lowerToKey;
 
   @override
   List<String> operator [](String name) {
-    return _headers[name];
+    return _headers[_lowerToKey[name.toLowerCase()]];
   }
 
   @override
-  void add(String name, Object value) {
-    _headers.putIfAbsent(name, () => <String>[]).add(value.toString());
+  void add(String name, Object value, {bool preserveHeaderCase = false}) {
+    var lower = name.toLowerCase();
+    if(preserveHeaderCase){
+      if(_lowerToKey.containsKey(lower)){
+        _headers[name] = _headers[_lowerToKey[lower]];
+        _headers.remove(_lowerToKey[lower]);
+        _headers[name].add(value);
+      }else{
+        _headers.putIfAbsent(name, () => <String>[]).add(value.toString());
+      }
+    }else{
+      _headers.putIfAbsent(lower, () => <String>[]).add(value.toString());
+    }
+    _lowerToKey[lower] = name;
   }
 
   @override
   void clear() {
     _headers.clear();
+    _lowerToKey.clear();
   }
 
   @override
@@ -534,22 +557,27 @@ class HttpTestHeaders extends HttpHeaders {
 
   @override
   void remove(String name, Object value) {
-    _headers[name]?.remove(value.toString());
+    _headers[_lowerToKey[name.toLowerCase()]]?.remove(value.toString());
   }
 
   @override
   void removeAll(String name) {
-    _headers.remove(name);
+    _headers.remove(_lowerToKey[name.toLowerCase()]);
   }
 
   @override
-  void set(String name, Object value) {
+  void set(String name, Object value, {bool preserveHeaderCase = false}) {
+    var lower = name.toLowerCase();
+    if(_lowerToKey.containsKey(lower)){
+      _headers.remove(_lowerToKey[lower]);
+    }
+    _lowerToKey[lower] = name;
     _headers[name] = <String>[value.toString()];
   }
 
   @override
   String value(String name) {
-    final List<String> values = _headers[name];
+    final List<String> values = _headers[_lowerToKey[name.toLowerCase()]];
     if (values == null) {
       return null;
     }
